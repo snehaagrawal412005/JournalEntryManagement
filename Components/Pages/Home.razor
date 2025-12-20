@@ -1,12 +1,60 @@
 ﻿@page "/"
 @using JournalEntryManagement.Models
 
-<PageTitle>Journal Home</PageTitle>
+<PageTitle>My Story</PageTitle>
 
-<h1>My Personal Journal</h1>
+<style>
+    /* Background and Overall Theme */
+    body {
+        background-color: #e3f2fd; /* Light Blue background */
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    h1, h3 {
+        color: #0d47a1 !important; /* Deep Blue headers */
+    }
+
+    /* Target your existing form box */
+    div[style*="border: 1px solid #ccc"] {
+        background-color: #ffffff !important;
+        border: none !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        padding: 25px !important;
+    }
+
+    /* Input fields and Textarea */
+    input, textarea, select {
+        border: 1px solid #bbdefb !important;
+        border-radius: 6px !important;
+        background-color: #fffde7 !important; /* Cream tint for inputs */
+        padding: 10px !important;
+    }
+
+    /* Teal Button from your reference */
+    .btn-primary {
+        background-color: #00897b !important; 
+        border: none !important;
+        padding: 10px 25px !important;
+        border-radius: 6px !important;
+        font-weight: bold;
+    }
+
+    /* Target recent entry boxes */
+    div[style*="border-bottom: 1px solid #eee"] {
+        background: white;
+        padding: 15px !important;
+        border-radius: 8px;
+        border-bottom: none !important;
+        margin-top: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+</style>
+
+<h1>My Daily Story</h1>
 
 <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px; background-color: #fcfcfc;">
-    <h3>Add a New Entry</h3>
+    <h3>How was your day</h3>
     
     <div style="margin-bottom: 10px;">
         <input @bind="entryModel.Title" placeholder="Entry Title" style="width: 100%; padding: 5px;" />
@@ -52,17 +100,13 @@ else
 }
 
 @code {
-    // List to hold our entries in memory for now
     private List<JournalEntry> journalList = new List<JournalEntry>();
-    
-    // Model for the input form
     private JournalEntry entryModel = new JournalEntry();
 
     private void HandleSave()
     {
         if (!string.IsNullOrWhiteSpace(entryModel.Title))
         {
-            // Create a copy to add to the list
             journalList.Add(new JournalEntry {
                 Title = entryModel.Title,
                 Content = entryModel.Content,
@@ -71,7 +115,6 @@ else
                 CreatedAt = DateTime.Now
             });
 
-            // Reset the form
             entryModel = new JournalEntry();
         }
     }
