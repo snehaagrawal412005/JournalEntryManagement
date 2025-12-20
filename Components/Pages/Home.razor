@@ -1,5 +1,78 @@
 ﻿@page "/"
+@using JournalEntryManagement.Models
 
-<h1>Hello, world!</h1>
+<PageTitle>Journal Home</PageTitle>
 
-Welcome to your new app.
+<h1>My Personal Journal</h1>
+
+<div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px; background-color: #fcfcfc;">
+    <h3>Add a New Entry</h3>
+    
+    <div style="margin-bottom: 10px;">
+        <input @bind="entryModel.Title" placeholder="Entry Title" style="width: 100%; padding: 5px;" />
+    </div>
+
+    <div style="margin-bottom: 10px;">
+        <textarea @bind="entryModel.Content" placeholder="Write your thoughts here..." style="width: 100%; height: 100px; padding: 5px;"></textarea>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+        <label>Primary Mood: </label>
+        <select @bind="entryModel.PrimaryMood">
+            <option value="Happy">Happy</option>
+            <option value="Neutral">Neutral</option>
+            <option value="Sad">Sad</option>
+            <option value="Productive">Productive</option>
+        </select>
+        
+        <input @bind="entryModel.Tags" placeholder="Tags (e.g. Work, Fun)" style="margin-left: 10px;" />
+    </div>
+
+    <button class="btn btn-primary" @onclick="HandleSave">Save Journal Entry</button>
+</div>
+
+<hr />
+
+<h3>Recent Entries</h3>
+
+@if (journalList.Count == 0)
+{
+    <p>No entries yet. Start writing today!</p>
+}
+else
+{
+    @foreach (var item in journalList)
+    {
+        <div style="border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px;">
+            <h4>@item.Title <span style="font-size: 0.8em; color: gray;">(@item.PrimaryMood)</span></h4>
+            <p>@item.Content</p>
+            <small>Tags: @item.Tags | Date: @item.CreatedAt.ToShortDateString()</small>
+        </div>
+    }
+}
+
+@code {
+    // List to hold our entries in memory for now
+    private List<JournalEntry> journalList = new List<JournalEntry>();
+    
+    // Model for the input form
+    private JournalEntry entryModel = new JournalEntry();
+
+    private void HandleSave()
+    {
+        if (!string.IsNullOrWhiteSpace(entryModel.Title))
+        {
+            // Create a copy to add to the list
+            journalList.Add(new JournalEntry {
+                Title = entryModel.Title,
+                Content = entryModel.Content,
+                PrimaryMood = entryModel.PrimaryMood,
+                Tags = entryModel.Tags,
+                CreatedAt = DateTime.Now
+            });
+
+            // Reset the form
+            entryModel = new JournalEntry();
+        }
+    }
+}
