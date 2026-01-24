@@ -16,8 +16,10 @@ namespace JournalEntryManagement
 
             builder.Services.AddMauiBlazorWebView();
 
+            builder.Services.AddSingleton<JournalEntryManagement.Services.JournalService>();
+
 #if DEBUG
-    		builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
 

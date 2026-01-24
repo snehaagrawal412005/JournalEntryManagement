@@ -1,0 +1,146 @@
+﻿@page "/write"
+@using JournalEntryManagement.Models
+@using JournalEntryManagement.Services
+@inject JournalService JournalService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Write Entry</PageTitle>
+
+<div class="container fade-in">
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-8">
+            <h2 style="color: var(--primary-color);">
+                @(IsEditMode ? "Edit Entry" : "New Entry")
+            </h2>
+            <p class="text-muted">Capture your thoughts, feelings, and memories.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <input type="date" class="form-control"
+                   @bind="CurrentDate"
+                   @bind:after="LoadEntryForDate" />
+        </div>
+    </div>
+
+    <div class="pro-card">
+        <EditForm Model="entryModel" OnValidSubmit="HandleSave">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Title of the Day</label>
+                <InputText class="form-control" @bind-Value="entryModel.Title" placeholder="e.g., A breakthrough at work..." />
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Primary Mood *</label>
+                    <InputSelect class="form-control" @bind-Value="entryModel.PrimaryMood">
+                        <option value="Neutral">Neutral</option>
+                        <option value="Happy">Happy</option>
+                        <option value="Sad">Sad</option>
+                        <option value="Excited">Excited</option>
+                        <option value="Tired">Tired</option>
+                        <option value="Stressed">Stressed</option>
+                        <option value="Grateful">Grateful</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Secondary Mood (Optional)</label>
+                    <InputSelect class="form-control" @bind-Value="entryModel.SecondaryMood1">
+                        <option value="">-- None --</option>
+                        <option value="Happy">Happy</option>
+                        <option value="Sad">Sad</option>
+                        <option value="Energetic">Energetic</option>
+                        <option value="Calm">Calm</option>
+                        <option value="Anxious">Anxious</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Secondary Mood (Optional)</label>
+                    <InputSelect class="form-control" @bind-Value="entryModel.SecondaryMood2">
+                        <option value="">-- None --</option>
+                        <option value="Confused">Confused</option>
+                        <option value="Loved">Loved</option>
+                        <option value="Proud">Proud</option>
+                        <option value="Sick">Sick</option>
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Tags</label>
+                <InputText class="form-control" @bind-Value="entryModel.Tags" placeholder="e.g., Work, Travel, Family (Comma separated)" />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">Your Story</label>
+                <InputTextArea class="form-control" @bind-Value="entryModel.Content" rows="12" placeholder="Write whatever is on your mind..." style="resize: none;" />
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-lg px-4">
+                    <span class="oi oi-check"></span> Save Entry
+                </button>
+                <a href="/" class="btn btn-outline-secondary btn-lg px-4">Cancel</a>
+            </div>
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="alert alert-danger mt-3">@ErrorMessage</div>
+            }
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private JournalEntry entryModel = new JournalEntry();
+    private DateTime CurrentDate = DateTime.Today;
+    private bool IsEditMode = false;
+    private string ErrorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Loading the today entry if it exists when the page opens
+        await LoadEntryForDate();
+    }
+
+    // Its Logic to check if an entry exists for the selected date
+    private async Task LoadEntryForDate()
+    {
+        var existingEntry = await JournalService.GetEntryByDateAsync(CurrentDate);
+
+        if (existingEntry != null)
+        {
+            // If entry exists we need to switch to Edit Mode and load data
+            entryModel = existingEntry;
+            IsEditMode = true;
+        }
+        else
+        {
+            // If no entry then we reset the form for a new entry
+            entryModel = new JournalEntry
+            {
+                EntryDate = CurrentDate,
+                CreatedAt = DateTime.Now
+            };
+            IsEditMode = false;
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        // Basic validation
+        if (string.IsNullOrWhiteSpace(entryModel.Title) || string.IsNullOrWhiteSpace(entryModel.Content))
+        {
+            ErrorMessage = "Please fill in at least a Title and Content.";
+            return;
+        }
+
+        // Ensuring the model date matches the date picker
+        entryModel.EntryDate = CurrentDate;
+
+        await JournalService.AddEntryAsync(entryModel);
+
+        // Going back to dashboard after saving
+        NavigationManager.NavigateTo("/");
+    }
+}

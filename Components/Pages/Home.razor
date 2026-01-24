@@ -1,121 +1,77 @@
 ﻿@page "/"
+@using JournalEntryManagement.Services
 @using JournalEntryManagement.Models
+@inject JournalService JournalService
 
-<PageTitle>My Story</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
-<style>
-    /* Background and Overall Theme */
-    body {
-        background-color: #e3f2fd; /* Light Blue background */
-        font-family: 'Segoe UI', sans-serif;
-    }
-
-    h1, h3 {
-        color: #0d47a1 !important; /* Deep Blue headers */
-    }
-
-    /* Target your existing form box */
-    div[style*="border: 1px solid #ccc"] {
-        background-color: #ffffff !important;
-        border: none !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        padding: 25px !important;
-    }
-
-    /* Input fields and Textarea */
-    input, textarea, select {
-        border: 1px solid #bbdefb !important;
-        border-radius: 6px !important;
-        background-color: #fffde7 !important; /* Cream tint for inputs */
-        padding: 10px !important;
-    }
-
-    /* Teal Button from your reference */
-    .btn-primary {
-        background-color: #00897b !important; 
-        border: none !important;
-        padding: 10px 25px !important;
-        border-radius: 6px !important;
-        font-weight: bold;
-    }
-
-    /* Target recent entry boxes */
-    div[style*="border-bottom: 1px solid #eee"] {
-        background: white;
-        padding: 15px !important;
-        border-radius: 8px;
-        border-bottom: none !important;
-        margin-top: 10px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-</style>
-
-<h1>My Daily Story</h1>
-
-<div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px; background-color: #fcfcfc;">
-    <h3>How was your day</h3>
-    
-    <div style="margin-bottom: 10px;">
-        <input @bind="entryModel.Title" placeholder="Entry Title" style="width: 100%; padding: 5px;" />
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 style="color: var(--primary-color);">Welcome Back!</h2>
+            <p class="text-muted">Here is your journaling overview.</p>
+        </div>
     </div>
 
-    <div style="margin-bottom: 10px;">
-        <textarea @bind="entryModel.Content" placeholder="Write your thoughts here..." style="width: 100%; height: 100px; padding: 5px;"></textarea>
-    </div>
-
-    <div style="margin-bottom: 10px;">
-        <label>Primary Mood: </label>
-        <select @bind="entryModel.PrimaryMood">
-            <option value="Happy">Happy</option>
-            <option value="Neutral">Neutral</option>
-            <option value="Sad">Sad</option>
-            <option value="Productive">Productive</option>
-        </select>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="pro-card stat-widget">
+                <div class="stat-number">@CurrentStreak 🔥</div>
+                <div class="stat-label">Day Streak</div>
+            </div>
+        </div>
         
-        <input @bind="entryModel.Tags" placeholder="Tags (e.g. Work, Fun)" style="margin-left: 10px;" />
+        <div class="col-md-4">
+            <div class="pro-card stat-widget">
+                <div class="stat-number">@TotalEntries 📖</div>
+                <div class="stat-label">Total Memories</div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="pro-card stat-widget" style="@(WrittenToday ? "border: 2px solid #00897b;" : "")">
+                <div class="stat-number">@(WrittenToday ? "Done" : "Pending")</div>
+                <div class="stat-label">Today's Entry</div>
+            </div>
+        </div>
     </div>
 
-    <button class="btn btn-primary" @onclick="HandleSave">Save Journal Entry</button>
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            @if (!WrittenToday)
+            {
+                <a href="write" class="btn btn-primary btn-lg shadow">
+                    Write Today's Story &rarr;
+                </a>
+            }
+            else
+            {
+                <div class="alert alert-success">
+                    You have completed your journal for today. Good job!
+                    <br/>
+                    <a href="write" class="alert-link">Edit Today's Entry</a>
+                </div>
+            }
+        </div>
+    </div>
 </div>
 
-<hr />
-
-<h3>Recent Entries</h3>
-
-@if (journalList.Count == 0)
-{
-    <p>No entries yet. Start writing today!</p>
-}
-else
-{
-    @foreach (var item in journalList)
-    {
-        <div style="border-bottom: 1px solid #eee; margin-bottom: 15px; padding-bottom: 10px;">
-            <h4>@item.Title <span style="font-size: 0.8em; color: gray;">(@item.PrimaryMood)</span></h4>
-            <p>@item.Content</p>
-            <small>Tags: @item.Tags | Date: @item.CreatedAt.ToShortDateString()</small>
-        </div>
-    }
-}
-
 @code {
-    private List<JournalEntry> journalList = new List<JournalEntry>();
-    private JournalEntry entryModel = new JournalEntry();
+    private int CurrentStreak = 0;
+    private int TotalEntries = 0;
+    private bool WrittenToday = false;
 
-    private void HandleSave()
+    protected override async Task OnInitializedAsync()
     {
-        if (!string.IsNullOrWhiteSpace(entryModel.Title))
-        {
-            journalList.Add(new JournalEntry {
-                Title = entryModel.Title,
-                Content = entryModel.Content,
-                PrimaryMood = entryModel.PrimaryMood,
-                Tags = entryModel.Tags,
-                CreatedAt = DateTime.Now
-            });
+        // Getting total count
+        var allEntries = await JournalService.GetAllEntriesAsync();
+        TotalEntries = allEntries.Count;
 
-            entryModel = new JournalEntry();
-        }
+        // Checking if written today
+        var today = await JournalService.GetEntryByDateAsync(DateTime.Today);
+        WrittenToday = today != null;
+
+        // Calculating Streak
+        CurrentStreak = await JournalService.CalculateStreak();
     }
 }

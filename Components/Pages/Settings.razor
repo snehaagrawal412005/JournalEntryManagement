@@ -1,0 +1,60 @@
+﻿@page "/settings"
+@using JournalEntryManagement.Services
+@inject JournalService JournalService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Settings</PageTitle>
+
+<div class="container fade-in">
+    <h2 class="mb-4" style="color: var(--primary-color);">App Settings</h2>
+
+    <div class="pro-card mb-4">
+        <div class="d-flex align-items-center">
+            <div style="background-color: var(--primary-color); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold;">
+                ME
+            </div>
+            <div class="ms-3">
+                <h4 class="mb-0">My Journal Profile</h4>
+                <p class="text-muted mb-0">Manage your data and preferences.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="pro-card mb-4">
+        <h5 class="fw-bold mb-3">Data Management</h5>
+        
+        <div class="alert alert-warning">
+            <strong>Warning:</strong> The actions below cannot be undone.
+        </div>
+
+        <button class="btn btn-outline-danger w-100 mb-2" @onclick="DeleteAllData">
+            <span class="oi oi-trash"></span> Delete All Journal Entries
+        </button>
+    </div>
+
+    <div class="text-center text-muted mt-5">
+        <p><strong>My Daily Story</strong><br/>Version 1.0.0 (Student Project)</p>
+    </div>
+</div>
+
+@code {
+    private async Task DeleteAllData()
+    {
+        bool confirm = await Application.Current.MainPage.DisplayAlert(
+            "Reset App?", 
+            "Are you sure you want to delete ALL your memories? This cannot be undone.", 
+            "Yes, Delete All", 
+            "Cancel");
+
+        if (confirm)
+        {
+            // Calling the service to delete data
+            await JournalService.DeleteAllEntriesAsync();
+            await Application.Current.MainPage.DisplayAlert("Success", "All data has been wiped.", "OK");
+            
+            // Refresh page
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+    }
+}
