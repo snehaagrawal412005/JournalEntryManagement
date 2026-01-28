@@ -1,4 +1,5 @@
 ﻿@page "/write"
+@page "/write/{DateString}"
 @using JournalEntryManagement.Models
 @using JournalEntryManagement.Services
 @inject JournalService JournalService
@@ -77,18 +78,23 @@
             <div class="mb-4">
                 <label class="form-label fw-bold">Your Story</label>
 
+                <div class="alert alert-light border small text-muted">
+                     <b>Formatting:</b> Use bold, _italic_, or # Heading to style your text in History!
+                </div>
+
                 <div class="btn-group mb-2 d-block">
                     <button type="button" class="btn btn-sm btn-light border" @onclick='() => AddFormatting("**")'><b>Bold</b></button>
                     <button type="button" class="btn btn-sm btn-light border" @onclick='() => AddFormatting("_")'><i>Italic</i></button>
                     <button type="button" class="btn btn-sm btn-light border" @onclick='() => AddFormatting("# ")'>Heading</button>
                     <button type="button" class="btn btn-sm btn-light border" @onclick='() => AddFormatting("- ")'>List</button>
                 </div>
+
                 <InputTextArea class="form-control" @bind-Value="entryModel.Content" rows="12" placeholder="Write whatever is on your mind..." style="resize: none;" />
             </div>
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-lg px-4">
-                    <span class="oi oi-check"></span> Save Entry
+                    Save Entry
                 </button>
                 <a href="/" class="btn btn-outline-secondary btn-lg px-4">Cancel</a>
             </div>
@@ -102,31 +108,42 @@
 </div>
 
 @code {
+    [Parameter]
+    public string? DateString { get; set; }
+
     private JournalEntry entryModel = new JournalEntry();
     private DateTime CurrentDate = DateTime.Today;
     private bool IsEditMode = false;
     private string ErrorMessage = "";
 
+    // this OnInitializedAsync handles everything.
     protected override async Task OnInitializedAsync()
     {
-        // Loading the today entry if it exists when the page opens
+        //  If we came from history edit button then use that date
+        if (!string.IsNullOrEmpty(DateString) && DateTime.TryParse(DateString, out DateTime parsedDate))
+        {
+            CurrentDate = parsedDate;
+        }
+        else
+        {
+            CurrentDate = DateTime.Today;
+        }
+
+        //  Loading the data
         await LoadEntryForDate();
     }
 
-    // Its Logic to check if an entry exists for the selected date
     private async Task LoadEntryForDate()
     {
         var existingEntry = await JournalService.GetEntryByDateAsync(CurrentDate);
 
         if (existingEntry != null)
         {
-            // If entry exists we need to switch to Edit Mode and load data
             entryModel = existingEntry;
             IsEditMode = true;
         }
         else
         {
-            // If no entry then we reset the form for a new entry
             entryModel = new JournalEntry
             {
                 EntryDate = CurrentDate,
@@ -138,26 +155,20 @@
 
     private void AddFormatting(string symbol)
     {
-        // It just adds the symbol to the end of your text
         if (entryModel.Content == null) entryModel.Content = "";
         entryModel.Content += symbol;
     }
 
     private async Task HandleSave()
     {
-        // Basic validation
         if (string.IsNullOrWhiteSpace(entryModel.Title) || string.IsNullOrWhiteSpace(entryModel.Content))
         {
             ErrorMessage = "Please fill in at least a Title and Content.";
             return;
         }
 
-        // Ensuring the model date matches the date picker
         entryModel.EntryDate = CurrentDate;
-
         await JournalService.AddEntryAsync(entryModel);
-
-        // Going back to dashboard after saving
         NavigationManager.NavigateTo("/");
     }
 

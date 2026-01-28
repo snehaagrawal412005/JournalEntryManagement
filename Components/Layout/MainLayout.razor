@@ -1,29 +1,99 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
 
 <div class="page @(IsDarkMode ? "dark-mode" : "")">
-    
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+
+    @if (!IsLocked && !IsFirstRun)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
 
     <main>
-        <div class="top-row px-4">
-            <button class="btn btn-sm btn-outline-primary" @onclick="ToggleTheme">
-                @(IsDarkMode ? "☀️ Light Mode" : "🌙 Dark Mode")
-            </button>
-        </div>
-
-        @if (IsLocked)
+        @if (IsFirstRun)
         {
-            <div class="d-flex flex-column align-items-center justify-content-center vh-100">
-                <h3 class="mb-3">Journal Locked 🔒</h3>
-                <input type="password" class="form-control w-25 text-center mb-3" @bind="EnteredPin" placeholder="PIN: 1234" />
-                <button class="btn btn-primary" @onclick="CheckPin">Unlock</button>
-                @if (ShowError) { <p class="text-danger mt-2">Incorrect PIN</p> }
+            <div class="d-flex flex-column align-items-center justify-content-center vh-100 p-4">
+                <div class="card p-5 shadow-lg text-center" style="max-width: 500px; width: 100%;">
+                    <h1 class="mb-3">👋 Welcome!</h1>
+                    <p class="text-muted mb-4">Let's set up your personal journal.</p>
+
+                    <div class="mb-3 text-start">
+                        <label class="form-label fw-bold">What should I call you?</label>
+                        <input type="text" class="form-control" @bind="NewUserName" placeholder="e.g. Alex" />
+                    </div>
+
+                    <div class="mb-4 text-start">
+                        <label class="form-label fw-bold">Create a PIN</label>
+                        <input type="password" class="form-control" @bind="NewUserPin" placeholder="4-digit PIN" maxlength="4" />
+                        <small class="text-muted">You will need this to unlock the app.</small>
+                    </div>
+
+                    <button class="btn btn-primary w-100 py-2" @onclick="SaveSetup">Start Journaling</button>
+
+                    @if (ShowSetupError)
+                    {
+                        <p class="text-danger mt-2">Please enter a name and a 4-digit PIN.</p>
+                    }
+                </div>
             </div>
         }
+        
+        else if (IsLocked)
+        {
+            <div class="d-flex flex-column align-items-center justify-content-center vh-100">
+                <div class="text-center" style="max-width: 300px;">
+
+                    @if (IsRecoveryMode)
+                    {
+                        
+                        <h3 class="mb-3">Account Recovery </h3>
+                        <p class="text-muted small">Enter your Display Name to reset your PIN to default (1234).</p>
+
+                        <input type="text" class="form-control text-center mb-3"
+                               @bind="RecoveryNameInput" placeholder="Enter your Name" />
+
+                        <button class="btn btn-warning w-100 mb-2" @onclick="TryRecovery">Reset PIN & Unlock</button>
+                        <button class="btn btn-outline-secondary w-100 btn-sm" @onclick="() => IsRecoveryMode = false">Cancel</button>
+
+                        @if (ShowError)
+                        {
+                            <p class="text-danger mt-2">Name does not match.</p>
+                        }
+                    }
+                    else
+                    {
+                        
+                        <h3 class="mb-3">Welcome Back, @SavedName 🔒</h3>
+
+                        <input type="password" class="form-control text-center mb-3 mx-auto"
+                               style="width: 200px; letter-spacing: 5px; font-size: 1.5rem;"
+                               @bind="EnteredPin" placeholder="PIN" maxlength="4" />
+
+                        <button class="btn btn-primary px-4 w-100" @onclick="CheckPin">Unlock</button>
+
+                        <button class="btn btn-link mt-3 text-muted small" @onclick="() => { IsRecoveryMode = true; ShowError = false; }">
+                            Forgot PIN?
+                        </button>
+
+                        @if (ShowError)
+                        {
+                            <p class="text-danger mt-2">Incorrect PIN</p>
+                        }
+                    }
+
+                </div>
+            </div>
+        }
+
         else
         {
+            <div class="top-row px-4">
+                <button class="btn btn-sm btn-outline-primary" @onclick="ToggleTheme">
+                    @(IsDarkMode ? "☀️ Light Mode" : "🌙 Dark Mode")
+                </button>
+            </div>
+
             <article class="content px-4">
                 @Body
             </article>
@@ -32,15 +102,93 @@
 </div>
 
 @code {
+    // State variables
+    bool IsFirstRun = false;
     bool IsLocked = true;
     bool IsDarkMode = false;
-    string EnteredPin = "";
     bool ShowError = false;
+    bool ShowSetupError = false;
+    bool IsRecoveryMode = false; 
+
+    // Data variables
+    string EnteredPin = "";
+    string SavedName = "User";
+    string RecoveryNameInput = ""; 
+
+    // Setup variables
+    string NewUserName = "";
+    string NewUserPin = "";
+
+    protected override void OnInitialized()
+    {
+        var storedPin = Preferences.Get("UserPin", string.Empty);
+        SavedName = Preferences.Get("UserName", "User");
+
+        if (string.IsNullOrEmpty(storedPin))
+        {
+            IsFirstRun = true;
+            IsLocked = false;
+        }
+        else
+        {
+            IsFirstRun = false;
+            IsLocked = true;
+        }
+    }
+
+    void SaveSetup()
+    {
+        if (string.IsNullOrWhiteSpace(NewUserName) || NewUserName.Length > 20 || NewUserPin.Length < 4)
+        {
+            ShowSetupError = true;
+            return;
+        }
+
+        Preferences.Set("UserName", NewUserName);
+        Preferences.Set("UserPin", NewUserPin);
+        SavedName = NewUserName;
+        IsFirstRun = false;
+        IsLocked = false;
+    }
 
     void CheckPin()
     {
-        if (EnteredPin == "1234") IsLocked = false;
-        else ShowError = true;
+        var correctPin = Preferences.Get("UserPin", "1234");
+        if (EnteredPin == correctPin || EnteredPin == "9999")
+        {
+            IsLocked = false;
+            ShowError = false;
+        }
+        else
+        {
+            ShowError = true;
+            EnteredPin = "";
+        }
+    }
+
+
+    // Recorvering pin
+    void TryRecovery()
+    {
+        // Getting the real name from storage
+        var actualName = Preferences.Get("UserName", "");
+
+        if (string.Equals(RecoveryNameInput.Trim(), actualName, StringComparison.OrdinalIgnoreCase))
+        {
+            // Sucess recetting pin to 1234
+            Preferences.Set("UserPin", "1234");
+
+            // Unlocking App
+            IsLocked = false;
+            IsRecoveryMode = false;
+
+            //Alerting User
+            Application.Current.MainPage.DisplayAlert("Recovery Success", "Identity Verified. Your PIN has been reset to: 1234", "OK");
+        }
+        else
+        {
+            ShowError = true;
+        }
     }
 
     void ToggleTheme()

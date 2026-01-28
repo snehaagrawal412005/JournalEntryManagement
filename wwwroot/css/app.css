@@ -1,6 +1,6 @@
 ﻿/* i am trying to make my app look professiolnal with css */
 :root {
-    --primary-color: #00897b; /* Teal */
+    --primary-color: #00897b; 
     --primary-dark: #005d53;
     --background-color: #f4f7f6;
     --text-dark: #333;
@@ -15,7 +15,7 @@ body {
 
 
 
-/* Professional Cards */
+/* for the Professional Cards */
 .pro-card {
     background: white;
     border-radius: 12px;
@@ -30,7 +30,7 @@ body {
         transform: translateY(-2px);
     }
 
-/* Buttons */
+/* for getting Buttons */
 .btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
@@ -43,7 +43,7 @@ body {
         background-color: var(--primary-dark);
     }
 
-/* Form Inputs */
+/* for the Form Inputs */
 .form-control {
     border-radius: 8px;
     border: 1px solid #e0e0e0;
@@ -56,7 +56,7 @@ body {
         border-color: var(--primary-color);
     }
 
-/* Stats/Dashboard Widgets */
+/* dashboard widget  */
 .stat-widget {
     text-align: center;
     padding: 15px;
@@ -79,46 +79,45 @@ html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-/* --- STUDENT DARK MODE FIX (FINAL) --- */
+/* fixing my dark mode*/
 
 .dark-mode {
-    background-color: #212529 !important; /* Dark Grey Background */
-    color: #f8f9fa !important; /* White Text */
+    background-color: #212529 !important; /*  for dark Grey Background */
+    color: #f8f9fa !important; /* for white Text and improtent so that this gets prioritery when needed */
 }
 
-    /* 1. FIX THE SIDEBAR (No more blue text!) */
     .dark-mode .sidebar {
         background-color: #1a1e21 !important;
     }
 
         .dark-mode .sidebar a {
-            color: #ffffff !important; /* Force Sidebar links White */
+            color: #ffffff !important; /* Making side bar links to white */
         }
 
             .dark-mode .sidebar a:hover {
                 background-color: #343a40 !important;
             }
 
-    /* 2. FIX THE BUTTONS (No more blue text inside buttons!) */
+
     .dark-mode .btn-primary,
     .dark-mode .btn-secondary,
     .dark-mode .btn-danger {
-        color: #ffffff !important; /* Keep button text white */
+        color: #ffffff !important; /* Keeping button text white */
     }
     /* Only make regular text links blue, NOT buttons */
     .dark-mode a:not(.btn):not(.nav-link) {
         color: #6ea8fe !important;
     }
 
-    /* 3. FIX THE CARDS (Force them Dark Grey, overriding the Yellow/Blue colors) */
+    /* trying to get dark grey card */
     .dark-mode .card,
     .dark-mode .pro-card {
-        background-color: #2c3034 !important; /* Dark Grey Card */
+        background-color: #2c3034 !important; /*but couldnt get need to fix this Dark Grey Card */
         color: #ffffff !important;
         border-color: #495057 !important;
     }
 
-    /* 4. FIX INPUTS (Search box, Text areas) */
+    /* fixing inputs Search box, Text areas */
     .dark-mode input,
     .dark-mode textarea,
     .dark-mode select {
@@ -131,29 +130,63 @@ html, body {
             color: #adb5bd !important;
         }
 
-    /* 5. FIX "MUTED" TEXT (Make it readable) */
+    /* fixing the muted text */
     .dark-mode .text-muted,
     .dark-mode small {
         color: #ced4da !important; /* Light Grey */
     }
 
-    /* --- FIX THE RECENT ENTRIES (BADGES) --- */
+    /* fixing the recent entries */
 
-    /* 1. Force 'bg-light' (The Date Box) to turn Dark Grey */
+    /* 1. forcing light The Date Box so it trund to Dark Grey */
     .dark-mode .bg-light {
         background-color: #343a40 !important; /* Dark Grey background */
         color: #ffffff !important; /* White text */
         border-color: #495057 !important; /* Dark border */
     }
 
-    /* 2. Force 'text-dark' (The Text inside the box) to turn White */
+    /* 2. turning datk text The Text inside the boxto  turn White */
     .dark-mode .text-dark {
         color: #e0e0e0 !important;
     }
 
-    /* 3. Fix the "No Entries" Empty Box */
+    /* 3. Fixing the No Entries Empty Box */
     .dark-mode .alert-light {
         background-color: #2c3034 !important;
         color: #ffffff !important;
         border-color: #495057 !important;
     }
+
+/* now for printing */
+@media print {
+    /* hiding the the sidebar buttons and normal layout */
+    .sidebar, .top-row, .btn, .no-print, .page-title {
+        display: none !important;
+    }
+
+    /* Resetting background colors  */
+    body, .page, main, .content {
+        background-color: white !important;
+        color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Showing the printable area */
+    .printable-area {
+        display: block !important;
+    }
+
+    /* ensuring that yhepage breaks don't cut entries in half */
+    .print-entry {
+        page-break-inside: avoid;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+    }
+}
+
+/* Hiding the print area on the normal screen */
+.printable-area {
+    display: none;
+}

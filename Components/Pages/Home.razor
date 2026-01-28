@@ -8,7 +8,7 @@
 <div class="fade-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 style="color: var(--primary-color);">Hello, User 👋</h1>
+            <h1 style="color: var(--primary-color);">Hello, @UserName 👋</h1>
             <p class="text-muted">Capture today's memory.</p>
         </div>
         <a href="write" class="btn btn-primary btn-lg shadow-sm">+ New Entry</a>
@@ -86,14 +86,19 @@
     List<JournalEntry> RecentEntries = new();
     List<JournalEntry> AllEntries = new();
     int CurrentPage = 1, PageSize = 3;
+    string UserName = "User";
 
     protected override async Task OnInitializedAsync()
     {
         AllEntries = await JournalService.GetAllEntriesAsync();
         TotalEntries = AllEntries.Count;
 
+        UserName = Preferences.Get("UserName", "User");
+
         var stats = await JournalService.GetStats();
         CurrentStreak = stats.Current;
+
+        AllEntries = await JournalService.GetAllEntriesAsync();
 
         var allFavs = await JournalService.GetFavoritesAsync();
         if (allFavs != null)
@@ -107,4 +112,5 @@
     void LoadPage() => RecentEntries = AllEntries.Skip((CurrentPage - 1) * PageSize).Take(PageSize).ToList();
     void NextPage() { if ((CurrentPage * PageSize) < TotalEntries) { CurrentPage++; LoadPage(); } }
     void PrevPage() { if (CurrentPage > 1) { CurrentPage--; LoadPage(); } }
+
 }

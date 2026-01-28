@@ -55,13 +55,13 @@
                     {
                         var count = TrendData[i];
 
-                        // Calculate width percentage (max 300 words)
+                        // Calculateithe width percentage (max 300 words)
                         var width = (count > 300) ? 100 : (count * 100 / 300);
 
-                        // Keep a minimum width so it looks good
+                        // Keeping the minimum width so it looks good
                         if (width < 5 && count > 0) width = 5;
 
-                        // Get the day name (Mon, Tue...)
+                        // Getting the day name
                         var dayName = DateTime.Today.AddDays(-(4 - i)).ToString("ddd");
 
                         <div class="d-flex align-items-center mb-2">
@@ -78,6 +78,39 @@
 
         <div class="col-md-6 mb-3">
             <div class="card p-4 shadow-sm h-100">
+                <h5 class="fw-bold">📊 Mood Distribution</h5>
+                <div class="mt-3">
+                    @if (MoodStats.Count == 0)
+                    {
+                        <p class="text-muted">No mood data yet.</p>
+                    }
+                    else
+                    {
+                        @foreach (var item in MoodStats)
+                        {
+                            // Calculating the percentage for the bar width
+                            var pct = (int)((double)item.Value / TotalEntriesCount * 100);
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>@item.Key</span>
+                                    <small>@item.Value (@pct%)</small>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    @* I am also Choosing color based on mood for making it look preety*@
+                                    <div class="progress-bar @(item.Key == "Happy" ? "bg-success" : item.Key == "Sad" ? "bg-secondary" : "bg-primary")"
+                                         style="width: @pct%"></div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-6 mb-3">
+            <div class="card p-4 shadow-sm h-100">
                 <h5 class="fw-bold">🏷️ Top Tags</h5>
 
                 @if (TagList.Count == 0)
@@ -89,7 +122,7 @@
                     <ul class="list-group list-group-flush mt-3">
                         @foreach (var tag in TagList)
                         {
-                            // Parse string "Work (5)" to separate name and count
+                            // Parsing the string work (5) to separate name and count
                             var parts = tag.Split('(');
                             var name = parts[0];
                             var count = parts[1].Replace(")", "");
@@ -107,17 +140,19 @@
 </div>
 
 @code {
-    // Student Note: Variables for the UI
+    // these are Variables for the UI
     int BestStreak = 0;
     int MissedDays = 0;
     string MostFrequentMood = "None";
 
     List<string> TagList = new List<string>();
     List<int> TrendData = new List<int>();
+    Dictionary<string, int> MoodStats = new Dictionary<string, int>();
+    int TotalEntriesCount = 0; // Needed to calculate percentage
 
     protected override async Task OnInitializedAsync()
     {
-        // Fetch all the stats from service
+        // taking all the stats from service
         var stats = await JournalService.GetStats();
 
         BestStreak = stats.Longest;
@@ -126,6 +161,26 @@
         MostFrequentMood = await JournalService.GetTopMood();
         TagList = await JournalService.GetTopTags();
         TrendData = await JournalService.GetWordTrend();
+
+        // To calculate mood breakdown
+        var allEntries = await JournalService.GetAllEntriesAsync();
+        TotalEntriesCount = allEntries.Count;
+
+        MoodStats = new Dictionary<string, int>();
+        foreach (var entry in allEntries)
+        {
+            if (string.IsNullOrEmpty(entry.PrimaryMood)) continue;
+
+            if (MoodStats.ContainsKey(entry.PrimaryMood))
+            {
+                MoodStats[entry.PrimaryMood]++;
+            }
+            else
+            {
+                MoodStats.Add(entry.PrimaryMood, 1);
+            }
+        }
+    }
     }
 }
 

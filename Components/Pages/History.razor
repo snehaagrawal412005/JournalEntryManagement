@@ -89,8 +89,8 @@
                             }
                         </div>
 
-                        <p class="text-muted text-truncate" style="max-height: 60px;">
-                            @entry.Content
+                        <p class="text-muted" style="max-height: 60px; overflow: hidden;">
+                            @RenderMarkdown(entry.Content)
                         </p>
 
                         <div class="mt-2">
@@ -114,7 +114,7 @@
     private List<JournalEntry> FilteredList = new();
     private bool ShowFavoritesOnly = false;
 
-    // Filter Variables
+    // Filtering Variables
     private string SearchText = "";
     private string SelectedMood = "";
     private DateTime? FilterDate = null;
@@ -132,7 +132,7 @@
     private async Task LoadData()
     {
         AllEntries = await JournalService.GetAllEntriesAsync();
-        FilteredList = AllEntries; // Show all by default
+        FilteredList = AllEntries; // Showing all by default
         UpdatePagination();
     }
 
@@ -140,7 +140,7 @@
     {
         var query = AllEntries.AsEnumerable();
 
-        // 1. Filter by Search Text (Title or Content)
+        // Filtering by the Search Text (Title or Content)
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
             query = query.Where(e =>
@@ -148,13 +148,13 @@
                 (e.Content?.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ?? false));
         }
 
-        // 2. Filter by Mood
+        //  Filtering by the Mood
         if (!string.IsNullOrWhiteSpace(SelectedMood))
         {
             query = query.Where(e => e.PrimaryMood == SelectedMood || e.SecondaryMood1 == SelectedMood || e.SecondaryMood2 == SelectedMood);
         }
 
-        // 3. Filter by Specific Date
+        //filtering by the Specific Date
         if (FilterDate.HasValue)
         {
             query = query.Where(e => e.EntryDate.Date == FilterDate.Value.Date);
@@ -174,11 +174,11 @@
 
     private void UpdatePagination()
     {
-        // Calculate total pages
+        // Calculateing the total pages
         TotalPages = (int)Math.Ceiling((double)FilteredList.Count / PageSize);
         if (TotalPages == 0) TotalPages = 1;
 
-        // Get only the 5 items for the current page
+        // Getting only the 5 items for the current page
         PaginatedList = FilteredList
             .Skip((CurrentPage - 1) * PageSize)
             .Take(PageSize)
@@ -221,7 +221,7 @@
         // For simplicity. we will just tell the user to go to Write and pick the date.
         // or we can also pass it as a query string if we wanted to be fancy, but let's stick to simple:
 
-        NavigationManager.NavigateTo($"write");
+        NavigationManager.NavigateTo($"write/{entry.EntryDate.ToString("yyyy-MM-dd")}");
         // Ideally we would update the Write page to accept a date parameter,
         // but for now. the user can use the Datepicker on the write page to find this entry.
     }
@@ -234,5 +234,25 @@
             await JournalService.DeleteEntryAsync(entry);
             await LoadData(); // Refresh list
         }
+    }
+
+    // finally solving to markdown symbols conversion problem to HTML
+    MarkupString RenderMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return new MarkupString("");
+
+        // Converting the new lines to HTML breaks so  that it doesn't look like one big blob
+        string html = text.Replace("\n", "<br>");
+
+        // Converting the bold text
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"\*\*(.*?)\*\*", "<b>$1</b>");
+
+        // Converting the italic taxt
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"_(.*?)_", "<i>$1</i>");
+
+        //Cinverting the heading text
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"# (.*?)(<br>|$)", "<h4>$1</h4>$2");
+
+        return new MarkupString(html);
     }
 }

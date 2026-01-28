@@ -1,41 +1,148 @@
 ﻿@page "/settings"
 @using JournalEntryManagement.Services
+@using JournalEntryManagement.Models
 @inject JournalService JournalService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Settings</PageTitle>
 
-<div class="container fade-in">
+<div class="container fade-in no-print">
     <h2 class="mb-4" style="color: var(--primary-color);">Settings</h2>
+
+    <div class="pro-card mb-4">
+        <h5 class="fw-bold mb-3">👤 User Profile</h5>
+
+        <div class="mb-3">
+            <label class="text-muted small">Display Name</label>
+            <div class="input-group">
+                <input type="text" class="form-control" @bind="CurrentName" />
+                <button class="btn btn-outline-primary" @onclick="UpdateName">Update</button>
+            </div>
+        </div>
+
+        <div class="border-top pt-3">
+            <label class="fw-bold mb-2" style="font-size: 0.9rem;">🔐 Change Security PIN</label>
+            <div class="row g-2">
+                <div class="col-md-5">
+                    <input type="password" class="form-control form-control-sm" @bind="OldPinInput" placeholder="Current PIN" maxlength="4" />
+                </div>
+                <div class="col-md-5">
+                    <input type="password" class="form-control form-control-sm" @bind="NewPinInput" placeholder="New PIN (4 digits)" maxlength="4" />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-secondary w-100 btn-sm" @onclick="ChangeUserPin">Save</button>
+                </div>
+            </div>
+            <small class="text-muted">Enter your current PIN to set a new one.</small>
+        </div>
+    </div>
 
     <div class="pro-card mb-4">
         <h5 class="fw-bold mb-3">Export Data</h5>
         <p class="text-muted">Save your journal entries as a PDF document.</p>
-        <button class="btn btn-outline-dark w-100" @onclick="ExportPdf">📄 Export to PDF</button>
+        <button class="btn btn-outline-dark w-100" @onclick="ExportPdf">📄 Download and Print the PDF</button>
     </div>
 
     <div class="pro-card mb-4 border-danger" style="border: 1px solid #ffcccc;">
         <h5 class="fw-bold text-danger mb-3">Danger Zone</h5>
         <button class="btn btn-danger w-100" @onclick="DeleteAllData">
-            🗑️ Delete All Journal Entries
+            Delete All Journal Entries
         </button>
     </div>
 </div>
 
+<div class="printable-area">
+    <h1 class="text-center mb-4">My Journal Journey</h1>
+    <p class="text-center text-muted mb-5">Generated on @DateTime.Now.ToShortDateString()</p>
+
+    @if (AllJournalEntries != null)
+    {
+        @foreach (var entry in AllJournalEntries)
+        {
+            <div class="print-entry">
+                <h3>@entry.EntryDate.ToShortDateString() - @entry.Title</h3>
+                <div>
+                    <strong>Mood:</strong> @entry.PrimaryMood |
+                    <strong>Tags:</strong> @entry.Tags
+                </div>
+                <p class="mt-3" style="white-space: pre-wrap;">@RenderMarkdown(entry.Content)</p>
+            </div>
+        }
+    }
+</div>
+
 @code {
+    List<JournalEntry> AllJournalEntries = new List<JournalEntry>();
+    string CurrentName = "";
+    string OldPinInput = "";
+    string NewPinInput = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        CurrentName = Preferences.Get("UserName", "User");
+        AllJournalEntries = await JournalService.GetAllEntriesAsync();
+    }
+
+    void UpdateName()
+    {
+        if (!string.IsNullOrWhiteSpace(CurrentName))
+        {
+            Preferences.Set("UserName", CurrentName);
+            Application.Current.MainPage.DisplayAlert("Success", "Name updated!", "OK");
+        }
+    }
+
+    void ChangeUserPin()
+    {
+        var storedPin = Preferences.Get("UserPin", "1234");
+
+        if (OldPinInput != storedPin)
+        {
+            Application.Current.MainPage.DisplayAlert("Error", "Your Current PIN is incorrect.", "Try Again");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(NewPinInput) || NewPinInput.Length < 4)
+        {
+            Application.Current.MainPage.DisplayAlert("Error", "New PIN must be 4 digits.", "OK");
+            return;
+        }
+
+        Preferences.Set("UserPin", NewPinInput);
+        Application.Current.MainPage.DisplayAlert("Success", "Your PIN has been changed!", "OK");
+
+        OldPinInput = "";
+        NewPinInput = "";
+    }
+
     private async Task ExportPdf()
     {
-        // Triggers the browser Print dialog -> Save as PDF
         await JSRuntime.InvokeVoidAsync("printPage");
     }
 
     private async Task DeleteAllData()
     {
+        // This Application.Current.MainPage giving a warning because Microsoft
+        // prefers Shell.Current so but but for a simple Coursework app this is perfectly fine.
+        // This is not an an error, just a suggestion from Visual Studio.
         bool confirm = await Application.Current.MainPage.DisplayAlert("Reset?", "Delete ALL memories?", "Yes", "Cancel");
-        if (confirm) {
+        if (confirm)
+        {
             await JournalService.DeleteAllEntriesAsync();
             NavigationManager.NavigateTo("/", forceLoad: true);
         }
+    }
+
+    // using helper function for pdf text
+    MarkupString RenderMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return new MarkupString("");
+        string html = text.Replace("\n", "<br>");
+        // this regex turns the into <b>bold</b> html thought its not working
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"\*\*(.*?)\*\*", "<b>$1</b>");
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"_(.*?)_", "<i>$1</i>");
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"# (.*?)(<br>|$)", "<h4>$1</h4>$2");
+        return new MarkupString(html);
     }
 }

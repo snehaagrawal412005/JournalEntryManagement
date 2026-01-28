@@ -19,35 +19,33 @@ namespace JournalEntryManagement.Services
             var databasePath = Path.Combine(FileSystem.AppDataDirectory, "MyStudentJournal.db");
             _db = new SQLiteAsyncConnection(databasePath);
 
-            // Create table if it doesn't exist
+            // creating the table table if it doesn't exist
             await _db.CreateTableAsync<JournalEntry>();
         }
-
-        // --- CRUD OPERATIONS ---
 
         public async Task AddEntryAsync(JournalEntry entry)
         {
             await Init();
             try
             {
-                // Check if we already have an entry for this date
+                // Checking if we already have an entry for this date
                 var existing = await GetEntryByDateAsync(entry.EntryDate);
 
                 if (existing != null)
                 {
-                    // Update the existing one
+                    // Updating the existing one
                     entry.Id = existing.Id;
                     await _db.UpdateAsync(entry);
                 }
                 else
                 {
-                    // Create a new one
+                    // Creating a new one
                     await _db.InsertAsync(entry);
                 }
             }
             catch (Exception ex)
             {
-                // Just log error to console for debugging
+                // its just log error to console for debugging
                 Console.WriteLine("Error adding entry: " + ex.Message);
             }
         }
@@ -55,7 +53,7 @@ namespace JournalEntryManagement.Services
         public async Task<List<JournalEntry>> GetAllEntriesAsync()
         {
             await Init();
-            // Sort by date so newest is first
+            // Sorting by date so newest is the first
             return await _db.Table<JournalEntry>().OrderByDescending(x => x.EntryDate).ToListAsync();
         }
 
@@ -64,7 +62,7 @@ namespace JournalEntryManagement.Services
             await Init();
             var allEntries = await _db.Table<JournalEntry>().ToListAsync();
 
-            // Loop to find the matching date
+            // using loop to find the matching date
             foreach (var item in allEntries)
             {
                 if (item.EntryDate.Date == date.Date)
@@ -87,7 +85,7 @@ namespace JournalEntryManagement.Services
             await _db.DeleteAllAsync<JournalEntry>();
         }
 
-        // --- STATS & ANALYTICS (Written with simple loops) ---
+    
 
         public async Task<(int Current, int Longest, int Missed)> GetStats()
         {
@@ -99,11 +97,11 @@ namespace JournalEntryManagement.Services
                 return (0, 0, 0);
             }
 
-            // 1. Calculate Current Streak
+            // Calculating Current Streak
             int currentStreak = 0;
             var dayToCheck = DateTime.Today;
 
-            // If I haven't written today yet, check yesterday so streak doesn't reset to 0
+            // If I haven't written today yet then check yesterday so streak doesn't reset to 0
             bool wroteToday = false;
             foreach (var e in entries)
             {
@@ -133,16 +131,16 @@ namespace JournalEntryManagement.Services
                 }
             }
 
-            // 2. Calculate Longest Streak
+            // calculating Longest Streak
             int longestStreak = 0;
             int tempCount = 1;
 
-            // Sort old to new for this calculation
+            //sorting old to new for this calculation
             var sortedList = entries.OrderBy(x => x.EntryDate).ToList();
 
             for (int i = 1; i < sortedList.Count; i++)
             {
-                // Get difference in days
+                //getting difference in days
                 var diff = (sortedList[i].EntryDate.Date - sortedList[i - 1].EntryDate.Date).Days;
 
                 if (diff == 1)
@@ -151,7 +149,7 @@ namespace JournalEntryManagement.Services
                 }
                 else if (diff > 1)
                 {
-                    tempCount = 1; // Reset if gap is found
+                    tempCount = 1; // Resetting if gap is found
                 }
 
                 if (tempCount > longestStreak)
@@ -160,11 +158,11 @@ namespace JournalEntryManagement.Services
                 }
             }
 
-            // Handle edge case
+            // Handling edge case
             if (longestStreak == 0 && entries.Count > 0) longestStreak = 1;
 
 
-            // 3. Calculate Missed Days
+            // Calculating the missed Days
             var firstEntryDate = sortedList.First().EntryDate.Date;
             var totalDaysSinceStart = (DateTime.Today - firstEntryDate).Days + 1;
             int missedDays = totalDaysSinceStart - entries.Count;
@@ -174,7 +172,7 @@ namespace JournalEntryManagement.Services
             return (currentStreak, longestStreak, missedDays);
         }
 
-        // Logic for "Most Used Tags"
+        // Logic for the Most Used Tags
         public async Task<List<string>> GetTopTags()
         {
             await Init();
@@ -207,7 +205,7 @@ namespace JournalEntryManagement.Services
                 }
             }
 
-            // Convert to a simple list of strings like "Work (5)"
+            // Converting to a simple list of strings like "Work (5)"
             // I used a bit of Linq here just to sort them, which is standard
             return tagCounts.OrderByDescending(x => x.Value)
                             .Take(5)
@@ -215,13 +213,13 @@ namespace JournalEntryManagement.Services
                             .ToList();
         }
 
-        // Logic for bar chart (last 5 days)
+       
         public async Task<List<int>> GetWordTrend()
         {
             await Init();
             List<int> trendData = new List<int>();
 
-            // Loop 5 times for last 5 days
+        
             for (int i = 4; i >= 0; i--)
             {
                 var dateToCheck = DateTime.Today.AddDays(-i);
@@ -229,7 +227,7 @@ namespace JournalEntryManagement.Services
 
                 if (entry != null && !string.IsNullOrEmpty(entry.Content))
                 {
-                    // Simple word count by splitting spaces
+                   
                     int words = entry.Content.Split(' ').Length;
                     trendData.Add(words);
                 }
