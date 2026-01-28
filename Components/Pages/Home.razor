@@ -5,73 +5,106 @@
 
 <PageTitle>Dashboard</PageTitle>
 
-<div class="container">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 style="color: var(--primary-color);">Welcome Back!</h2>
-            <p class="text-muted">Here is your journaling overview.</p>
+<div class="fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 style="color: var(--primary-color);">Hello, User 👋</h1>
+            <p class="text-muted">Capture today's memory.</p>
         </div>
+        <a href="write" class="btn btn-primary btn-lg shadow-sm">+ New Entry</a>
     </div>
 
-    <div class="row">
-        <div class="col-md-4">
-            <div class="pro-card stat-widget">
-                <div class="stat-number">@CurrentStreak 🔥</div>
-                <div class="stat-label">Day Streak</div>
+    <div class="row mb-5">
+        <div class="col-md-6 mb-2">
+            <div class="card p-3 shadow-sm border-warning-left">
+                <div class="d-flex align-items-center">
+                    <div class="display-4 me-3">🔥</div>
+                    <div><h3 class="fw-bold mb-0">@CurrentStreak Days</h3><small class="text-muted">Current Streak</small></div>
+                </div>
             </div>
         </div>
-        
-        <div class="col-md-4">
-            <div class="pro-card stat-widget">
-                <div class="stat-number">@TotalEntries 📖</div>
-                <div class="stat-label">Total Memories</div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="pro-card stat-widget" style="@(WrittenToday ? "border: 2px solid #00897b;" : "")">
-                <div class="stat-number">@(WrittenToday ? "Done" : "Pending")</div>
-                <div class="stat-label">Today's Entry</div>
+        <div class="col-md-6 mb-2">
+            <div class="card p-3 shadow-sm border-primary-left">
+                <div class="d-flex align-items-center">
+                    <div class="display-4 me-3">📚</div>
+                    <div><h3 class="fw-bold mb-0">@TotalEntries Entries</h3><small class="text-muted">Total Saved</small></div>
+                </div>
             </div>
         </div>
     </div>
-
-    <div class="row mt-4">
-        <div class="col-12 text-center">
-            @if (!WrittenToday)
+    @if (Favorites.Count > 0)
+    {
+        <h4 class="mt-4 mb-3 text-danger">❤️ Memorable Moments</h4>
+        <div class="row mb-4">
+            @foreach (var fav in Favorites)
             {
-                <a href="write" class="btn btn-primary btn-lg shadow">
-                    Write Today's Story &rarr;
-                </a>
-            }
-            else
-            {
-                <div class="alert alert-success">
-                    You have completed your journal for today. Good job!
-                    <br/>
-                    <a href="write" class="alert-link">Edit Today's Entry</a>
+                <div class="col-md-6 mb-2">
+                    <div class="card p-3 shadow-sm border-danger" style="border-left: 5px solid #dc3545;">
+                        <h5 class="fw-bold">@fav.Title</h5>
+                        <small class="text-muted">@fav.EntryDate.ToShortDateString()</small>
+                        <a href="write" class="stretched-link"></a>
+                    </div>
                 </div>
             }
         </div>
-    </div>
+    }
+    <h4 class="mb-3 text-secondary">Recent Entries</h4>
+    @if (RecentEntries.Count == 0)
+    {
+        <div class="alert alert-light text-center p-5 border">No entries yet. <a href="write">Start writing!</a></div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var entry in RecentEntries)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm pro-card border-0">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="badge bg-light text-dark border">@entry.EntryDate.ToString("MMM dd")</span>
+                                <span class="badge bg-secondary">@entry.PrimaryMood</span>
+                            </div>
+                            <h5 class="card-title fw-bold text-truncate">@entry.Title</h5>
+                            <p class="card-text text-muted small">@(entry.Content.Length > 80 ? entry.Content.Substring(0, 80) + "..." : entry.Content)</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="d-flex justify-content-center mt-3 gap-3">
+            <button class="btn btn-sm btn-outline-secondary" @onclick="PrevPage" disabled="@(CurrentPage == 1)">&laquo; Newer</button>
+            <span class="text-muted align-self-center">Page @CurrentPage</span>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="NextPage" disabled="@((CurrentPage * PageSize) >= TotalEntries)">Older &raquo;</button>
+        </div>
+    }
 </div>
 
 @code {
-    private int CurrentStreak = 0;
-    private int TotalEntries = 0;
-    private bool WrittenToday = false;
+    int CurrentStreak, TotalEntries;
+    List<JournalEntry> Favorites = new();
+    List<JournalEntry> RecentEntries = new();
+    List<JournalEntry> AllEntries = new();
+    int CurrentPage = 1, PageSize = 3;
 
     protected override async Task OnInitializedAsync()
     {
-        // Getting total count
-        var allEntries = await JournalService.GetAllEntriesAsync();
-        TotalEntries = allEntries.Count;
+        AllEntries = await JournalService.GetAllEntriesAsync();
+        TotalEntries = AllEntries.Count;
 
-        // Checking if written today
-        var today = await JournalService.GetEntryByDateAsync(DateTime.Today);
-        WrittenToday = today != null;
+        var stats = await JournalService.GetStats();
+        CurrentStreak = stats.Current;
 
-        // Calculating Streak
-        CurrentStreak = await JournalService.CalculateStreak();
+        var allFavs = await JournalService.GetFavoritesAsync();
+        if (allFavs != null)
+        {
+            Favorites = allFavs.Take(2).ToList();
+        }
+
+        LoadPage();
     }
+
+    void LoadPage() => RecentEntries = AllEntries.Skip((CurrentPage - 1) * PageSize).Take(PageSize).ToList();
+    void NextPage() { if ((CurrentPage * PageSize) < TotalEntries) { CurrentPage++; LoadPage(); } }
+    void PrevPage() { if (CurrentPage > 1) { CurrentPage--; LoadPage(); } }
 }

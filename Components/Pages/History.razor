@@ -34,6 +34,15 @@
                 <input type="date" class="form-control" @bind="FilterDate" @bind:after="ApplyFilters" />
             </div>
 
+            <div class="col-md-2 d-flex align-items-center">
+                <div class="form-check ms-2">
+                    <input class="form-check-input" type="checkbox" id="favCheck"
+                           @bind="ShowFavoritesOnly" @bind:after="ApplyFilters">
+                    <label class="form-check-label ms-1" for="favCheck" style="cursor:pointer">❤️ Favorites
+                    </label>
+                </div>
+            </div>
+
             <div class="col-md-2">
                 <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters">Clear</button>
             </div>
@@ -53,12 +62,18 @@
     else
     {
         <div class="row">
-            @foreach (var entry in FilteredList)
+            @foreach (var entry in PaginatedList)
             {
                 <div class="col-12 mb-3">
                     <div class="pro-card p-3">
                         <div class="d-flex justify-content-between">
-                            <h5 class="fw-bold text-primary">@entry.Title</h5>
+                            <h5 class="fw-bold text-primary">
+                                @if (entry.IsFavorite)
+                                {
+                                    <span class="text-danger me-1">❤️</span>
+                                }
+                                @entry.Title
+                            </h5>
                             <small class="text-muted">@entry.EntryDate.ToShortDateString()</small>
                         </div>
 
@@ -88,15 +103,26 @@
         </div>
     }
 </div>
+<div class="d-flex justify-content-center gap-3 mt-4">
+    <button class="btn btn-outline-secondary" @onclick="PrevPage" disabled="@(CurrentPage == 1)">Previous</button>
+    <span>Page @CurrentPage of @TotalPages</span>
+    <button class="btn btn-outline-secondary" @onclick="NextPage" disabled="@(CurrentPage == TotalPages)">Next</button>
+</div>
 
 @code {
     private List<JournalEntry> AllEntries = new();
     private List<JournalEntry> FilteredList = new();
+    private bool ShowFavoritesOnly = false;
 
     // Filter Variables
     private string SearchText = "";
     private string SelectedMood = "";
     private DateTime? FilterDate = null;
+    int CurrentPage = 1;
+    int PageSize = 5;
+    int TotalPages = 1;
+
+    List<JournalEntry> PaginatedList = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -107,6 +133,7 @@
     {
         AllEntries = await JournalService.GetAllEntriesAsync();
         FilteredList = AllEntries; // Show all by default
+        UpdatePagination();
     }
 
     private void ApplyFilters()
@@ -133,7 +160,47 @@
             query = query.Where(e => e.EntryDate.Date == FilterDate.Value.Date);
         }
 
+        if (ShowFavoritesOnly)
+        {
+            query = query.Where(e => e.IsFavorite == true);
+        }
+
         FilteredList = query.ToList();
+
+        CurrentPage = 1;
+
+        UpdatePagination();
+    }
+
+    private void UpdatePagination()
+    {
+        // Calculate total pages
+        TotalPages = (int)Math.Ceiling((double)FilteredList.Count / PageSize);
+        if (TotalPages == 0) TotalPages = 1;
+
+        // Get only the 5 items for the current page
+        PaginatedList = FilteredList
+            .Skip((CurrentPage - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private void NextPage()
+    {
+        if (CurrentPage < TotalPages)
+        {
+            CurrentPage++;
+            UpdatePagination();
+        }
+    }
+
+    private void PrevPage()
+    {
+        if (CurrentPage > 1)
+        {
+            CurrentPage--;
+            UpdatePagination();
+        }
     }
 
     private void ClearFilters()
@@ -142,6 +209,7 @@
         SelectedMood = "";
         FilterDate = null;
         FilteredList = AllEntries;
+        UpdatePagination();
     }
 
     private void EditEntry(JournalEntry entry)

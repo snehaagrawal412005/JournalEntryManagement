@@ -1,17 +1,50 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
+<div class="page @(IsDarkMode ? "dark-mode" : "")">
+    
     <div class="sidebar">
         <NavMenu />
     </div>
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <button class="btn btn-sm btn-outline-primary" @onclick="ToggleTheme">
+                @(IsDarkMode ? "☀️ Light Mode" : "🌙 Dark Mode")
+            </button>
         </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
+        @if (IsLocked)
+        {
+            <div class="d-flex flex-column align-items-center justify-content-center vh-100">
+                <h3 class="mb-3">Journal Locked 🔒</h3>
+                <input type="password" class="form-control w-25 text-center mb-3" @bind="EnteredPin" placeholder="PIN: 1234" />
+                <button class="btn btn-primary" @onclick="CheckPin">Unlock</button>
+                @if (ShowError) { <p class="text-danger mt-2">Incorrect PIN</p> }
+            </div>
+        }
+        else
+        {
+            <article class="content px-4">
+                @Body
+            </article>
+        }
     </main>
 </div>
+
+@code {
+    bool IsLocked = true;
+    bool IsDarkMode = false;
+    string EnteredPin = "";
+    bool ShowError = false;
+
+    void CheckPin()
+    {
+        if (EnteredPin == "1234") IsLocked = false;
+        else ShowError = true;
+    }
+
+    void ToggleTheme()
+    {
+        IsDarkMode = !IsDarkMode;
+    }
+}

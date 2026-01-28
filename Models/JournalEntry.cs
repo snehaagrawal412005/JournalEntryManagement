@@ -20,5 +20,7 @@ namespace JournalEntryManagement.Models
         public string SecondaryMood2 { get; set; } = "";
 
         public string Tags { get; set; } = "";
+
+        public bool IsFavorite { get; set; } = false;
     }
 }

@@ -1,0 +1,131 @@
+﻿@page "/analytics"
+@using JournalEntryManagement.Services
+@inject JournalService JournalService
+
+<PageTitle>Analytics</PageTitle>
+
+<div class="fade-in">
+    <h2 class="mb-4" style="color: var(--primary-color);">Insights & Trends</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card p-3 h-100 shadow-sm border-danger-left">
+                <div class="d-flex align-items-center">
+                    <div class="display-4 me-3">📅</div>
+                    <div>
+                        <h3 class="fw-bold mb-0">@MissedDays</h3>
+                        <small class="text-muted">Days Missed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card p-3 h-100 shadow-sm border-success-left">
+                <div class="d-flex align-items-center">
+                    <div class="display-4 me-3">🏆</div>
+                    <div>
+                        <h3 class="fw-bold mb-0">@BestStreak</h3>
+                        <small class="text-muted">Best Streak</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card p-3 h-100 shadow-sm border-info-left">
+                <div class="d-flex align-items-center">
+                    <div class="display-4 me-3">❤️</div>
+                    <div>
+                        <h3 class="fw-bold mb-0">@MostFrequentMood</h3>
+                        <small class="text-muted">Dominant Mood</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card p-4 shadow-sm h-100">
+                <h5 class="fw-bold">📈 Writing Activity (Last 5 Days)</h5>
+
+                <div class="mt-4">
+                    @for (int i = 0; i < TrendData.Count; i++)
+                    {
+                        var count = TrendData[i];
+
+                        // Calculate width percentage (max 300 words)
+                        var width = (count > 300) ? 100 : (count * 100 / 300);
+
+                        // Keep a minimum width so it looks good
+                        if (width < 5 && count > 0) width = 5;
+
+                        // Get the day name (Mon, Tue...)
+                        var dayName = DateTime.Today.AddDays(-(4 - i)).ToString("ddd");
+
+                        <div class="d-flex align-items-center mb-2">
+                            <small class="text-muted me-2" style="width:30px;">@dayName</small>
+                            <div class="progress w-100" style="height:12px;">
+                                <div class="progress-bar bg-info" style="width: @width%"></div>
+                            </div>
+                            <small class="ms-2 fw-bold" style="width:30px;">@count</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card p-4 shadow-sm h-100">
+                <h5 class="fw-bold">🏷️ Top Tags</h5>
+
+                @if (TagList.Count == 0)
+                {
+                    <p class="text-muted mt-3">No tags yet.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush mt-3">
+                        @foreach (var tag in TagList)
+                        {
+                            // Parse string "Work (5)" to separate name and count
+                            var parts = tag.Split('(');
+                            var name = parts[0];
+                            var count = parts[1].Replace(")", "");
+
+                            <li class="list-group-item d-flex justify-content-between">
+                                @name
+                                <span class="badge bg-primary rounded-pill">@count</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Student Note: Variables for the UI
+    int BestStreak = 0;
+    int MissedDays = 0;
+    string MostFrequentMood = "None";
+
+    List<string> TagList = new List<string>();
+    List<int> TrendData = new List<int>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Fetch all the stats from service
+        var stats = await JournalService.GetStats();
+
+        BestStreak = stats.Longest;
+        MissedDays = stats.Missed;
+
+        MostFrequentMood = await JournalService.GetTopMood();
+        TagList = await JournalService.GetTopTags();
+        TrendData = await JournalService.GetWordTrend();
+    }
+}
+

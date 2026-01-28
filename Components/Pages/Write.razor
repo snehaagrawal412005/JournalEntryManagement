@@ -11,6 +11,9 @@
         <div class="col-md-8">
             <h2 style="color: var(--primary-color);">
                 @(IsEditMode ? "Edit Entry" : "New Entry")
+                <button type="button" class="btn btn-lg rounded-circle shadow-sm ms-3 @(entryModel.IsFavorite ? "btn-danger" : "btn-outline-danger")"
+                        @onclick="ToggleHeart"> ❤️
+                </button>
             </h2>
             <p class="text-muted">Capture your thoughts, feelings, and memories.</p>
         </div>
@@ -73,6 +76,13 @@
 
             <div class="mb-4">
                 <label class="form-label fw-bold">Your Story</label>
+
+                <div class="btn-group mb-2 d-block">
+                    <button type="button" class="btn btn-sm btn-light border" @onclick='() => AddFormatting("**")'><b>Bold</b></button>
+                    <button type="button" class="btn btn-sm btn-light border" @onclick='() => AddFormatting("_")'><i>Italic</i></button>
+                    <button type="button" class="btn btn-sm btn-light border" @onclick='() => AddFormatting("# ")'>Heading</button>
+                    <button type="button" class="btn btn-sm btn-light border" @onclick='() => AddFormatting("- ")'>List</button>
+                </div>
                 <InputTextArea class="form-control" @bind-Value="entryModel.Content" rows="12" placeholder="Write whatever is on your mind..." style="resize: none;" />
             </div>
 
@@ -126,6 +136,13 @@
         }
     }
 
+    private void AddFormatting(string symbol)
+    {
+        // It just adds the symbol to the end of your text
+        if (entryModel.Content == null) entryModel.Content = "";
+        entryModel.Content += symbol;
+    }
+
     private async Task HandleSave()
     {
         // Basic validation
@@ -142,5 +159,10 @@
 
         // Going back to dashboard after saving
         NavigationManager.NavigateTo("/");
+    }
+
+    void ToggleHeart()
+    {
+        entryModel.IsFavorite = !entryModel.IsFavorite;
     }
 }
